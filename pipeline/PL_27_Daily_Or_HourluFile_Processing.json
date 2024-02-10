@@ -1,0 +1,296 @@
+{
+	"name": "PL_27_Daily_Or_HourluFile_Processing",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set FileName",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "varFileName",
+					"value": {
+						"value": "@replace(pipeline().parameters.parFileName,'Sales','')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If Daily or Hourly",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set FileName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greaterOrEquals(indexof(variables('varFileName'),'Daily'),0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Copy Hourly Data",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "pipeLineName",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "TransactionType",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "TransactionType",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Amount",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Amount",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 2,
+												"precision": 30
+											}
+										},
+										{
+											"source": {
+												"name": "pipeLineName",
+												"type": "String"
+											},
+											"sink": {
+												"name": "PipeLineName",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_27_daily_or_hourly_csv_file",
+									"type": "DatasetReference",
+									"parameters": {
+										"parDataSetFileName": "HourlySales.csv"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_ADF_DEMO_SQL_SERVER",
+									"type": "DatasetReference",
+									"parameters": {
+										"parDataSetTableName": "HourlyTransactions"
+									}
+								}
+							]
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Copy Daily File",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "pipelineName",
+											"value": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "TransactionType",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "TransactionType",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "City",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										},
+										{
+											"source": {
+												"name": "Amount",
+												"type": "String",
+												"physicalType": "String"
+											},
+											"sink": {
+												"name": "Amount",
+												"type": "Decimal",
+												"physicalType": "decimal",
+												"scale": 2,
+												"precision": 30
+											}
+										},
+										{
+											"source": {
+												"name": "pipelineName",
+												"type": "String"
+											},
+											"sink": {
+												"name": "PipeLineName",
+												"type": "String",
+												"physicalType": "varchar"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_27_daily_or_hourly_csv_file",
+									"type": "DatasetReference",
+									"parameters": {
+										"parDataSetFileName": "DailySales.csv"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_ADF_DEMO_SQL_SERVER",
+									"type": "DatasetReference",
+									"parameters": {
+										"parDataSetTableName": "DailyTransactions"
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"parFileName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"varFileName": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-11-14T04:20:59Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,28 @@
+{
+	"name": "EventTriggerForDailyOrHourlyFile",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_27_Daily_Or_HourluFile_Processing",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"parFileName": "@triggerBody().fileName"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/practice/blobs/input/VideoNo27_Daily_or_Hourly_Files/",
+			"blobPathEndsWith": ".csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/1101ab50-b9a6-4719-afe5-7586e598ea9f/resourceGroups/synapse-course-rg/providers/Microsoft.Storage/storageAccounts/azuresynapsecoursedl",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

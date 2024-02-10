@@ -1,0 +1,46 @@
+{
+	"name": "ds_27_daily_or_hourly_csv_file",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azure_synapse_course_dl",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"parDataSetFileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().parDataSetFileName",
+					"type": "Expression"
+				},
+				"folderPath": "input/VideoNo27_Daily_or_Hourly_Files",
+				"fileSystem": "practice"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "TransactionType",
+				"type": "String"
+			},
+			{
+				"name": "City",
+				"type": "String"
+			},
+			{
+				"name": "Amount",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,86 @@
+{
+	"name": "childPipeline2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Set timer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": {
+						"value": "@int(variables('varTimer'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set timer",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "varTimer",
+					"value": {
+						"value": "@string(add(int(pipeline().parameters.duration),10))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "varTriggeredBy",
+					"value": {
+						"value": "@pipeline().parameters.triggeredBy",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"duration": {
+				"type": "string"
+			},
+			"triggeredBy": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"varTimer": {
+				"type": "String"
+			},
+			"varTriggeredBy": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-07-19T04:25:46Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

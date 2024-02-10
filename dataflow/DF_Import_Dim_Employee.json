@@ -1,0 +1,191 @@
+{
+	"name": "DF_Import_Dim_Employee",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_stgforallrun_dl",
+						"type": "LinkedServiceReference"
+					},
+					"name": "EmployeeCSVFile"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_azureSQL_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "dimEmployeeTable"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_azureSQL_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "SinkUpdate"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_azureSQL_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkInsert"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CSVGenerateHashKeyAndOtherColumns"
+				},
+				{
+					"name": "SQLGenerateHashKeyAndOtherColumns"
+				},
+				{
+					"name": "RenameSQLColumns"
+				},
+				{
+					"name": "lookuptoIdentifyMatchedEMPKeys"
+				},
+				{
+					"name": "KeepOnlyRowstoUpdate"
+				},
+				{
+					"name": "AlterRowtoAllowUpdate"
+				},
+				{
+					"name": "KeepOnlyRowstoInsert"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          empid as integer,",
+				"          empname as string,",
+				"          gender as string,",
+				"          country as string,",
+				"          salary as integer",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'raw',",
+				"     fileName: 'EmployeeFileForSCD2.csv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true) ~> EmployeeCSVFile",
+				"source(output(",
+				"          empKey as integer,",
+				"          empid as integer,",
+				"          empname as string,",
+				"          gender as string,",
+				"          country as string,",
+				"          salary as integer,",
+				"          isActive as integer,",
+				"          startDate as timestamp,",
+				"          endDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'query',",
+				"     store: 'sqlserver',",
+				"     query: 'select * from dbo.Employee Where isActive =1',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> dimEmployeeTable",
+				"EmployeeCSVFile derive(HashKey = sha2(256,empname,gender,country,salary),",
+				"          IsActiveForInsert = 1,",
+				"          IsActiveForUpdate = 0,",
+				"          startDate = currentUTC(),",
+				"          endDate = currentUTC()) ~> CSVGenerateHashKeyAndOtherColumns",
+				"dimEmployeeTable derive(HashKey = sha2(256, empname,gender,country,salary)) ~> SQLGenerateHashKeyAndOtherColumns",
+				"SQLGenerateHashKeyAndOtherColumns select(mapColumn(",
+				"          SQL_empKey = empKey,",
+				"          SQL_empid = empid,",
+				"          SQL_empname = empname,",
+				"          SQL_gender = gender,",
+				"          SQL_country = country,",
+				"          SQL_salary = salary,",
+				"          SQL_isActive = isActive,",
+				"          SQL_startDate = startDate,",
+				"          SQL_endDate = endDate,",
+				"          SQL_HashKey = HashKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RenameSQLColumns",
+				"CSVGenerateHashKeyAndOtherColumns, RenameSQLColumns lookup(empid == SQL_empid,",
+				"     multiple: true,",
+				"     broadcast: 'auto')~> lookuptoIdentifyMatchedEMPKeys",
+				"lookuptoIdentifyMatchedEMPKeys filter(!isNull(SQL_HashKey) && notEquals(HashKey,SQL_HashKey)) ~> KeepOnlyRowstoUpdate",
+				"KeepOnlyRowstoUpdate alterRow(updateIf(1==1)) ~> AlterRowtoAllowUpdate",
+				"lookuptoIdentifyMatchedEMPKeys filter((!isNull(SQL_HashKey) && notEquals(HashKey,SQL_HashKey) ) || (isNull(SQL_HashKey))) ~> KeepOnlyRowstoInsert",
+				"AlterRowtoAllowUpdate sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          empKey as integer,",
+				"          empid as integer,",
+				"          empname as string,",
+				"          gender as string,",
+				"          country as string,",
+				"          salary as integer,",
+				"          isActive as integer,",
+				"          startDate as timestamp,",
+				"          endDate as timestamp",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'Employee',",
+				"     insertable: false,",
+				"     updateable: true,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     keys:['empKey'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 1,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          isActive = IsActiveForUpdate,",
+				"          endDate,",
+				"          empKey = SQL_empKey",
+				"     )) ~> SinkUpdate",
+				"KeepOnlyRowstoInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          empKey as integer,",
+				"          empid as integer,",
+				"          empname as string,",
+				"          gender as string,",
+				"          country as string,",
+				"          salary as integer,",
+				"          isActive as integer,",
+				"          startDate as timestamp,",
+				"          endDate as timestamp",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'Employee',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     saveOrder: 2,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          empid,",
+				"          empname,",
+				"          gender,",
+				"          country,",
+				"          salary,",
+				"          isActive = IsActiveForInsert,",
+				"          startDate",
+				"     )) ~> sinkInsert"
+			]
+		}
+	}
+}
