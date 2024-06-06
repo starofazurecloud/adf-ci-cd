@@ -1,0 +1,17 @@
+{
+	"name": "trg_daily_load_date_dimensions",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2024-05-01T13:03:00",
+				"timeZone": "India Standard Time"
+			}
+		}
+	}
+}
