@@ -1,0 +1,45 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-demo-for-all"
+		},
+		"lsAzureDatabricks_accessToken": {
+			"value": ""
+		},
+		"ls_adf_demo_sql_svr_connectionString": {
+			"value": ""
+		},
+		"ls_azureSQL_db_connectionString": {
+			"value": ""
+		},
+		"ls_azure_synapse_course_dl_accountKey": {
+			"value": ""
+		},
+		"ls_stgforallrun_dl_accountKey": {
+			"value": ""
+		},
+		"ls_azure_synapse_course_dl_properties_typeProperties_url": {
+			"value": "https://azuresynapsecoursedl.dfs.core.windows.net/"
+		},
+		"ls_stgforallrun_dl_properties_typeProperties_url": {
+			"value": "https://stgforallrun.dfs.core.windows.net/"
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName": {
+			"value": "@triggerBody().fileName"
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope": {
+			"value": "/subscriptions/1101ab50-b9a6-4719-afe5-7586e598ea9f/resourceGroups/synapse-course-rg/providers/Microsoft.Storage/storageAccounts/azuresynapsecoursedl"
+		},
+		"trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration": {
+			"value": 5
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

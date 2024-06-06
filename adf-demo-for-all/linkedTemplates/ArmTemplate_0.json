@@ -1,0 +1,1265 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-demo-for-all"
+		},
+		"lsAzureDatabricks_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'lsAzureDatabricks'"
+		},
+		"ls_adf_demo_sql_svr_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_adf_demo_sql_svr'"
+		},
+		"ls_azureSQL_db_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_azureSQL_db'"
+		},
+		"ls_azure_synapse_course_dl_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_azure_synapse_course_dl'"
+		},
+		"ls_stgforallrun_dl_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_stgforallrun_dl'"
+		},
+		"ls_azure_synapse_course_dl_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://azuresynapsecoursedl.dfs.core.windows.net/"
+		},
+		"ls_stgforallrun_dl_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stgforallrun.dfs.core.windows.net/"
+		},
+		"trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration": {
+			"type": "int",
+			"defaultValue": 5
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName": {
+			"type": "string",
+			"defaultValue": "@triggerBody().fileName"
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1101ab50-b9a6-4719-afe5-7586e598ea9f/resourceGroups/synapse-course-rg/providers/Microsoft.Storage/storageAccounts/azuresynapsecoursedl"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/childPipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": {
+								"value": "@pipeline().parameters.duration",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"duration": {
+						"type": "int"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-19T04:08:45Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/childPipeline2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Set timer",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": {
+								"value": "@int(variables('varTimer'))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set timer",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "varTimer",
+							"value": {
+								"value": "@string(add(int(pipeline().parameters.duration),10))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "varTriggeredBy",
+							"value": {
+								"value": "@pipeline().parameters.triggeredBy",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"duration": {
+						"type": "string"
+					},
+					"triggeredBy": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"varTimer": {
+						"type": "String"
+					},
+					"varTriggeredBy": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-07-19T04:25:46Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/lsAzureDatabricks')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-8627782814724420.0.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('lsAzureDatabricks_accessToken')]"
+					},
+					"newClusterNodeType": "Standard_DS3_v2",
+					"newClusterNumOfWorker": "1",
+					"newClusterSparkEnvVars": {
+						"PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+					},
+					"newClusterVersion": "13.3.x-scala2.12",
+					"clusterOption": "Fixed",
+					"newClusterInitScripts": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adf_demo_sql_svr')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_adf_demo_sql_svr_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_azureSQL_db')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_azureSQL_db_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_azure_synapse_course_dl')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_azure_synapse_course_dl_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_azure_synapse_course_dl_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_stgforallrun_dl')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_stgforallrun_dl_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_stgforallrun_dl_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_27_daily_or_hourly_csv_file')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azure_synapse_course_dl",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"parDataSetFileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().parDataSetFileName",
+							"type": "Expression"
+						},
+						"folderPath": "input/VideoNo27_Daily_or_Hourly_Files",
+						"fileSystem": "practice"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "TransactionType",
+						"type": "String"
+					},
+					{
+						"name": "City",
+						"type": "String"
+					},
+					{
+						"name": "Amount",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azure_synapse_course_dl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_ADF_DEMO_SQL_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adf_demo_sql_svr",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"parDataSetTableName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TransactionType",
+						"type": "varchar"
+					},
+					{
+						"name": "City",
+						"type": "varchar"
+					},
+					{
+						"name": "Amount",
+						"type": "decimal",
+						"precision": 30,
+						"scale": 2
+					},
+					{
+						"name": "PipeLineName",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": {
+						"value": "@dataset().parDataSetTableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adf_demo_sql_svr')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_stgforallrun_dl",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"parCSVNo": {
+						"type": "int"
+					}
+				},
+				"folder": {
+					"name": "LoopThruExcelFileTabs"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "ExceltoCSV_SheetNo_@{dataset().parCSVNo}",
+							"type": "Expression"
+						},
+						"fileSystem": "democsv"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_stgforallrun_dl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_demo_Excel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_stgforallrun_dl",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"parIndexNo": {
+						"type": "int",
+						"defaultValue": 0
+					}
+				},
+				"folder": {
+					"name": "LoopThruExcelFileTabs"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "DemoExcel.xlsx",
+						"fileSystem": "demoexcel"
+					},
+					"sheetIndex": {
+						"value": "@dataset().parIndexNo",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_stgforallrun_dl')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_Import_Dim_Employee')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "ls_stgforallrun_dl",
+								"type": "LinkedServiceReference"
+							},
+							"name": "EmployeeCSVFile"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ls_azureSQL_db",
+								"type": "LinkedServiceReference"
+							},
+							"name": "dimEmployeeTable"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "ls_azureSQL_db",
+								"type": "LinkedServiceReference"
+							},
+							"name": "SinkUpdate"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ls_azureSQL_db",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sinkInsert"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CSVGenerateHashKeyAndOtherColumns"
+						},
+						{
+							"name": "SQLGenerateHashKeyAndOtherColumns"
+						},
+						{
+							"name": "RenameSQLColumns"
+						},
+						{
+							"name": "lookuptoIdentifyMatchedEMPKeys"
+						},
+						{
+							"name": "KeepOnlyRowstoUpdate"
+						},
+						{
+							"name": "AlterRowtoAllowUpdate"
+						},
+						{
+							"name": "KeepOnlyRowstoInsert"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          empid as integer,",
+						"          empname as string,",
+						"          gender as string,",
+						"          country as string,",
+						"          salary as integer",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'raw',",
+						"     fileName: 'EmployeeFileForSCD2.csv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true) ~> EmployeeCSVFile",
+						"source(output(",
+						"          empKey as integer,",
+						"          empid as integer,",
+						"          empname as string,",
+						"          gender as string,",
+						"          country as string,",
+						"          salary as integer,",
+						"          isActive as integer,",
+						"          startDate as timestamp,",
+						"          endDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'query',",
+						"     store: 'sqlserver',",
+						"     query: 'select * from dbo.Employee Where isActive =1',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> dimEmployeeTable",
+						"EmployeeCSVFile derive(HashKey = sha2(256,empname,gender,country,salary),",
+						"          IsActiveForInsert = 1,",
+						"          IsActiveForUpdate = 0,",
+						"          startDate = currentUTC(),",
+						"          endDate = currentUTC()) ~> CSVGenerateHashKeyAndOtherColumns",
+						"dimEmployeeTable derive(HashKey = sha2(256, empname,gender,country,salary)) ~> SQLGenerateHashKeyAndOtherColumns",
+						"SQLGenerateHashKeyAndOtherColumns select(mapColumn(",
+						"          SQL_empKey = empKey,",
+						"          SQL_empid = empid,",
+						"          SQL_empname = empname,",
+						"          SQL_gender = gender,",
+						"          SQL_country = country,",
+						"          SQL_salary = salary,",
+						"          SQL_isActive = isActive,",
+						"          SQL_startDate = startDate,",
+						"          SQL_endDate = endDate,",
+						"          SQL_HashKey = HashKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RenameSQLColumns",
+						"CSVGenerateHashKeyAndOtherColumns, RenameSQLColumns lookup(empid == SQL_empid,",
+						"     multiple: true,",
+						"     broadcast: 'auto')~> lookuptoIdentifyMatchedEMPKeys",
+						"lookuptoIdentifyMatchedEMPKeys filter(!isNull(SQL_HashKey) && notEquals(HashKey,SQL_HashKey)) ~> KeepOnlyRowstoUpdate",
+						"KeepOnlyRowstoUpdate alterRow(updateIf(1==1)) ~> AlterRowtoAllowUpdate",
+						"lookuptoIdentifyMatchedEMPKeys filter((!isNull(SQL_HashKey) && notEquals(HashKey,SQL_HashKey) ) || (isNull(SQL_HashKey))) ~> KeepOnlyRowstoInsert",
+						"AlterRowtoAllowUpdate sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          empKey as integer,",
+						"          empid as integer,",
+						"          empname as string,",
+						"          gender as string,",
+						"          country as string,",
+						"          salary as integer,",
+						"          isActive as integer,",
+						"          startDate as timestamp,",
+						"          endDate as timestamp",
+						"     ),",
+						"     format: 'table',",
+						"     store: 'sqlserver',",
+						"     schemaName: 'dbo',",
+						"     tableName: 'Employee',",
+						"     insertable: false,",
+						"     updateable: true,",
+						"     deletable: false,",
+						"     upsertable: false,",
+						"     keys:['empKey'],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     saveOrder: 1,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          isActive = IsActiveForUpdate,",
+						"          endDate,",
+						"          empKey = SQL_empKey",
+						"     )) ~> SinkUpdate",
+						"KeepOnlyRowstoInsert sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          empKey as integer,",
+						"          empid as integer,",
+						"          empname as string,",
+						"          gender as string,",
+						"          country as string,",
+						"          salary as integer,",
+						"          isActive as integer,",
+						"          startDate as timestamp,",
+						"          endDate as timestamp",
+						"     ),",
+						"     format: 'table',",
+						"     store: 'sqlserver',",
+						"     schemaName: 'dbo',",
+						"     tableName: 'Employee',",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     deletable: false,",
+						"     upsertable: false,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     saveOrder: 2,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          empid,",
+						"          empname,",
+						"          gender,",
+						"          country,",
+						"          salary,",
+						"          isActive = IsActiveForInsert,",
+						"          startDate",
+						"     )) ~> sinkInsert"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_stgforallrun_dl')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_azureSQL_db')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trg_daily_load_date_dimensions')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "childPipeline1",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"duration": "[parameters('trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 15,
+						"startTime": "2024-05-01T13:03:00",
+						"endTime": "2025-01-16T13:04:07",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/childPipeline1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_27_Daily_Or_HourluFile_Processing')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set FileName",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "varFileName",
+							"value": {
+								"value": "@replace(pipeline().parameters.parFileName,'Sales','')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "If Daily or Hourly",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Set FileName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greaterOrEquals(indexof(variables('varFileName'),'Daily'),0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Copy Hourly Data",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "pipeLineName",
+													"value": {
+														"value": "@pipeline().Pipeline",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "TransactionType",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "TransactionType",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "City",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "City",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "Amount",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "Amount",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 2,
+														"precision": 30
+													}
+												},
+												{
+													"source": {
+														"name": "pipeLineName",
+														"type": "String"
+													},
+													"sink": {
+														"name": "PipeLineName",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_27_daily_or_hourly_csv_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"parDataSetFileName": "HourlySales.csv"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_ADF_DEMO_SQL_SERVER",
+											"type": "DatasetReference",
+											"parameters": {
+												"parDataSetTableName": "HourlyTransactions"
+											}
+										}
+									]
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Copy Daily File",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"additionalColumns": [
+												{
+													"name": "pipelineName",
+													"value": {
+														"value": "@pipeline().Pipeline",
+														"type": "Expression"
+													}
+												}
+											],
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "TransactionType",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "TransactionType",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "City",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "City",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "Amount",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "Amount",
+														"type": "Decimal",
+														"physicalType": "decimal",
+														"scale": 2,
+														"precision": 30
+													}
+												},
+												{
+													"source": {
+														"name": "pipelineName",
+														"type": "String"
+													},
+													"sink": {
+														"name": "PipeLineName",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_27_daily_or_hourly_csv_file",
+											"type": "DatasetReference",
+											"parameters": {
+												"parDataSetFileName": "DailySales.csv"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_ADF_DEMO_SQL_SERVER",
+											"type": "DatasetReference",
+											"parameters": {
+												"parDataSetTableName": "DailyTransactions"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"parFileName": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"varFileName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-11-14T04:20:59Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_27_daily_or_hourly_csv_file')]",
+				"[concat(variables('factoryId'), '/datasets/ds_ADF_DEMO_SQL_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Import_Dim_Employee')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF Import DIM Employee",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Import_Dim_Employee",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"EmployeeCSVFile": {},
+									"dimEmployeeTable": {},
+									"SinkUpdate": {},
+									"sinkInsert": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-03T04:06:36Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_Import_Dim_Employee')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_loop_tru_excel_tabs')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "UntilExcelTabExists",
+						"description": "It Starts with False and will continue until the value is True",
+						"type": "Until",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@variables('varIsError')",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy Excel Sheet Data to CSV",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set Counter",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "ExcelSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_demo_Excel",
+											"type": "DatasetReference",
+											"parameters": {
+												"parIndexNo": {
+													"value": "@int(variables('varCurrentIndexNo'))",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_csv",
+											"type": "DatasetReference",
+											"parameters": {
+												"parCSVNo": {
+													"value": "@int(variables('varCurrentIndexNo'))",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Set Index Counter",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy Excel Sheet Data to CSV",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "varCurrentIndexNo",
+										"value": {
+											"value": "@variables('varCounter')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set Counter",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "varCounter",
+										"value": {
+											"value": "@string(add(int(variables('varCurrentIndexNo')),1))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable2",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy Excel Sheet Data to CSV",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "varIsError",
+										"value": {
+											"value": "@bool(1)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "0.12:00:00"
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "UntilExcelTabExists",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"varCurrentIndexNo": {
+						"type": "String",
+						"defaultValue": "0"
+					},
+					"varIsError": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"varCounter": {
+						"type": "String",
+						"defaultValue": "0"
+					}
+				},
+				"folder": {
+					"name": "LoopthruExcelFileTabs"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-10-03T15:26:16Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_demo_Excel')]",
+				"[concat(variables('factoryId'), '/datasets/ds_csv')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EventTriggerForDailyOrHourlyFile')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_27_Daily_Or_HourluFile_Processing",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"parFileName": "[parameters('EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName')]"
+						}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/practice/blobs/input/VideoNo27_Daily_or_Hourly_Files/",
+					"blobPathEndsWith": ".csv",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/PL_27_Daily_Or_HourluFile_Processing')]"
+			]
+		}
+	]
+}

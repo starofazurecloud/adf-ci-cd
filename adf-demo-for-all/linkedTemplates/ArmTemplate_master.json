@@ -1,0 +1,112 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-demo-for-all"
+		},
+		"lsAzureDatabricks_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'lsAzureDatabricks'"
+		},
+		"ls_adf_demo_sql_svr_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_adf_demo_sql_svr'"
+		},
+		"ls_azureSQL_db_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_azureSQL_db'"
+		},
+		"ls_azure_synapse_course_dl_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_azure_synapse_course_dl'"
+		},
+		"ls_stgforallrun_dl_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_stgforallrun_dl'"
+		},
+		"ls_azure_synapse_course_dl_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://azuresynapsecoursedl.dfs.core.windows.net/"
+		},
+		"ls_stgforallrun_dl_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stgforallrun.dfs.core.windows.net/"
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName": {
+			"type": "string",
+			"defaultValue": "@triggerBody().fileName"
+		},
+		"EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/1101ab50-b9a6-4719-afe5-7586e598ea9f/resourceGroups/synapse-course-rg/providers/Microsoft.Storage/storageAccounts/azuresynapsecoursedl"
+		},
+		"trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration": {
+			"type": "int",
+			"defaultValue": 5
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "adf-demo-for-all_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"lsAzureDatabricks_accessToken": {
+						"value": "[parameters('lsAzureDatabricks_accessToken')]"
+					},
+					"ls_adf_demo_sql_svr_connectionString": {
+						"value": "[parameters('ls_adf_demo_sql_svr_connectionString')]"
+					},
+					"ls_azureSQL_db_connectionString": {
+						"value": "[parameters('ls_azureSQL_db_connectionString')]"
+					},
+					"ls_azure_synapse_course_dl_accountKey": {
+						"value": "[parameters('ls_azure_synapse_course_dl_accountKey')]"
+					},
+					"ls_stgforallrun_dl_accountKey": {
+						"value": "[parameters('ls_stgforallrun_dl_accountKey')]"
+					},
+					"ls_azure_synapse_course_dl_properties_typeProperties_url": {
+						"value": "[parameters('ls_azure_synapse_course_dl_properties_typeProperties_url')]"
+					},
+					"ls_stgforallrun_dl_properties_typeProperties_url": {
+						"value": "[parameters('ls_stgforallrun_dl_properties_typeProperties_url')]"
+					},
+					"trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration": {
+						"value": "[parameters('trg_daily_load_date_dimensions_properties_childPipeline1_parameters_duration')]"
+					},
+					"EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName": {
+						"value": "[parameters('EventTriggerForDailyOrHourlyFile_properties_PL_27_Daily_Or_HourluFile_Processing_parameters_parFileName')]"
+					},
+					"EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope": {
+						"value": "[parameters('EventTriggerForDailyOrHourlyFile_properties_typeProperties_scope')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
