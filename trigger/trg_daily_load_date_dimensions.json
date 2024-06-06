@@ -8,6 +8,9 @@
 				"pipelineReference": {
 					"referenceName": "childPipeline1",
 					"type": "PipelineReference"
+				},
+				"parameters": {
+					"duration": 5
 				}
 			}
 		],
